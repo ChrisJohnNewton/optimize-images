@@ -136,15 +136,15 @@ function uploadFile(file) {
     let formData: FormData = new FormData();
     formData.append('image', file);
 
-    fetch(
-        'http://localhost/optimize-images/handle-image.min.js',
-        {
-            method: 'POST',
-            body: formData
-        }
-    )
-    .then(() => { /* Done. Inform the user */ })
-    .catch(() => { /* Error. Inform the user */ })
+    // fetch(
+    //     'http://localhost/optimize-images/handle-image.min.js',
+    //     {
+    //         method: 'POST',
+    //         body: formData
+    //     }
+    // )
+    // .then(() => { /* Done. Inform the user */ })
+    // .catch(() => { /* Error. Inform the user */ })
 };
 
 function previewFile(file) {
