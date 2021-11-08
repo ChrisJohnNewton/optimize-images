@@ -11,7 +11,7 @@ const defaultOptions = {
 };
 
 const fetchImage = async () => new Uint8Array(
-  await fetch("http://localhost/ChrisJohnNewton.GitHub.io/images/chris-john-newton-raw.jpg")
+  await fetch("https://chrisjohnnewton.github.io/images/chris-john-newton-raw.jpg")
         .then(response => response.arrayBuffer())
 );
 

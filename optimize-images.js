@@ -90,12 +90,12 @@ function handlerFunction() {
 function uploadFile(file) {
     let formData = new FormData();
     formData.append('image', file);
-    fetch('http://localhost/optimize-images/handle-image.min.js', {
-        method: 'POST',
-        body: formData
-    })
-        .then(() => { })
-        .catch(() => { });
+    // fetch('http://localhost/optimize-images/handle-image.min.js', {
+    //     method: 'POST',
+    //     body: formData
+    // })
+        // .then(() => { })
+        // .catch(() => { });
 }
 ;
 function previewFile(file) {
