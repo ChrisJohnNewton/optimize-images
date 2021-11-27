@@ -1,63 +1,3 @@
-// import DownZip from './imports/downzip';
-
-// document.getElementById('myDownloadLink').addEventListener('click', () => {
-//     async function downZipIt() {
-//         // Setup downzip object
-//         const downZip = new DownZip();
-//         await downZip.register();
-
-//         const downloadId = "aaaabbbb";
-//         const zipFileName = "downzip-file";
-//         const files = [
-//             {
-//                 name: 'picture1.jpg',
-//                 downloadUrl: 'https://m.media-amazon.com/images/M/MV5BNDVkYjU0MzctMWRmZi00NTkxLTgwZWEtOWVhYjZlYjllYmU4XkEyXkFqcGdeQXVyNTA4NzY1MzY@._V1_.jpg',
-//                 size: 65366    // In bytes
-//             }, 
-//             {
-//                 name: 'picture2.jpg',
-//                 downloadUrl: 'https://m.media-amazon.com/images/M/MV5BNDVkYjU0MzctMWRmZi00NTkxLTgwZWEtOWVhYjZlYjllYmU4XkEyXkFqcGdeQXVyNTA4NzY1MzY@._V1_.jpg',
-//                 size: 65366    // In bytes
-//             }
-//         ]
-//         const downloadUrl = await downZip.downzip(
-//             downloadId,
-//             zipFileName,
-//             files
-//         )
-
-//         document.getElementById('myDownloadLink').setAttribute("href", downloadUrl);
-//     }; downZipIt();
-// });
-// async function downZipIt() {
-//     // Setup downzip object
-//     const downZip = new DownZip();
-//     await downZip.register();
-
-//     const downloadId = "aaaabbbb";
-//     const zipFileName = "downzip-file";
-//     const files = [
-//         {
-//             name: 'picture1.jpg',
-//             downloadUrl: 'https://m.media-amazon.com/images/M/MV5BNDVkYjU0MzctMWRmZi00NTkxLTgwZWEtOWVhYjZlYjllYmU4XkEyXkFqcGdeQXVyNTA4NzY1MzY@._V1_.jpg',
-//             size: 65366    // In bytes
-//         }, 
-//         {
-//             name: 'picture2.jpg',
-//             downloadUrl: 'https://m.media-amazon.com/images/M/MV5BNDVkYjU0MzctMWRmZi00NTkxLTgwZWEtOWVhYjZlYjllYmU4XkEyXkFqcGdeQXVyNTA4NzY1MzY@._V1_.jpg',
-//             size: 65366    // In bytes
-//         }
-//     ]
-//     const downloadUrl = await downZip.downzip(
-//         downloadId,
-//         zipFileName,
-//         files
-//     )
-
-//     document.getElementById('myDownloadLink').setAttribute("href", downloadUrl);
-// };
-// downZipIt();
-
 const dropArea: HTMLElement = document.getElementById('drop-area'),
 fileChooser: HTMLElement = document.getElementById('file-chooser'),
 gallery: HTMLElement = document.getElementById('gallery'),
@@ -66,7 +6,12 @@ metaAuthor: HTMLElement = document.getElementById('meta-author'),
 metaCopyright: HTMLElement = document.getElementById('meta-copyright'),
 imageWidths: NodeListOf<HTMLInputElement> = document.querySelectorAll('input[name="image-widths"]'),
 fileTypes: NodeListOf<HTMLInputElement> = document.querySelectorAll('input[name="file-types"]'),
-prepareImageButton: HTMLElement = document.getElementById('prepare-image-button');
+prepareImageButton: HTMLElement = document.getElementById('prepare-image-button'),
+wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js');
+// clientZipWorker = new Worker('/optimize-images/imports/client-zip/client-zip-worker.js');
+// navigator.serviceWorker.register('/optimize-images/client-zip-worker.js', {
+//     scope: '/optimize-images/'
+// });
 
 // When the dragged item is dragged over dropArea, making it the target for the drop event if the user drops it there.
 dropArea.addEventListener('dragenter', handlerFunction, false);
@@ -126,33 +71,37 @@ fileChooser.addEventListener(
 prepareImageButton.addEventListener(
     'click',
     () => prepareImage()
-)
+);
+
+wasmImageWorker.onmessage = e => {
+  
+    const dataArray = e.data[0],
+    width = e.data[1],
+    height = e.data[2],
+    imageType = e.data[3];
+
+    const imageBlob = new Blob([dataArray]),
+    imageDataURL = URL.createObjectURL(imageBlob),
+    imageHTML = document.createElement('figure');
+    imageHTML.classList.add('m0', 'g', 'jic', 'b1', 'br6');
+    imageHTML.style.padding = "4px 4px 0 4px";
+
+    imageHTML.innerHTML = `<img width=\"150\" src=\"${imageDataURL}\">
+    <figcaption>${imageType}. ${imageBlob.size} bytes</figcaption>`;
+
+    prepareImageButton.insertAdjacentElement('afterend', imageHTML);
+};
 
 function handlerFunction() {
     return true;
 };
 
-function uploadFile(file) {
-    let formData: FormData = new FormData();
-    formData.append('image', file);
-
-    // fetch(
-    //     'http://localhost/optimize-images/handle-image.min.js',
-    //     {
-    //         method: 'POST',
-    //         body: formData
-    //     }
-    // )
-    // .then(() => { /* Done. Inform the user */ })
-    // .catch(() => { /* Error. Inform the user */ })
-};
-
 function previewFile(file) {
-    let reader: FileReader = new FileReader();
+    let reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onloadend = function() {
+    reader.onloadend = () => {
         if (gallery.style.display === "none") gallery.style.removeProperty("display");
-        let img: HTMLImageElement = document.createElement('img')
+        let img = document.createElement('img')
         img.src = <string>reader.result;
         img.id = "web-image"
         img.className = "br6 l2";
@@ -163,43 +112,24 @@ function previewFile(file) {
 };
 
 function prepareImage() {
+    const webImage = <HTMLImageElement>document.getElementById('web-image');
 
-    document.querySelectorAll('canvas').forEach(canvas => document.body.removeChild(canvas));
+    let fileTypeList: String[] = new Array();
+    for (let fileType of <any>fileTypes) {
+        if (fileType.checked) fileTypeList.push(`wasm_${fileType.id}()`);
+    }
 
-    let img: HTMLImageElement = <HTMLImageElement>document.getElementById('web-image'),
-    imgName: string = document.getElementById('web-image').dataset.fileName,
-    checkedImageWidths: Array<number> = new Array(),
-    checkedFileTypes: Array<string> = new Array();
-
-    imageWidths.forEach(node => {
-        if (node.checked) {
-            checkedImageWidths.push(+node.nextElementSibling.textContent.replace("px", ""));
-        }
-    });
-    
-    fileTypes.forEach(node => {
-        if (node.checked) {
-            checkedFileTypes.push(node.nextElementSibling.textContent);
-        }
-    });
-
-    checkedImageWidths.forEach(width => {
-        let canvas: HTMLCanvasElement = <HTMLCanvasElement>document.createElement('canvas'),
-        height = img.height / (img.width / width),
-        canvasContext = canvas.getContext('2d');
-        
-        canvas.width = width;
-        canvas.height = height;
-        canvasContext.drawImage(img, 0, 0, width, height);
-
-        let canvasDataURL = canvas.toDataURL("image/png"),
-        downloadLink = document.createElement("a");
-        downloadLink.download = imgName;
-        downloadLink.href = canvasDataURL;
-        downloadLink.dataset.downloadurl  = `image/png:${downloadLink.download}:${downloadLink.href}`;
-
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-    });
+    fetch(webImage.src)
+    .then(response => response.arrayBuffer())
+    .then(buffer => wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), fileTypeList]));
 };
+
+// clientZipWorker.postMessage("Go!");
+
+// clientZipWorker.onmessage = e => {
+//     const link = document.createElement("a");
+//     link.href = URL.createObjectURL(e.data);
+//     link.download = "test.zip";
+//     link.click();
+//     link.remove();
+// }
