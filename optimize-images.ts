@@ -1,17 +1,14 @@
-const dropArea: HTMLElement = document.getElementById('drop-area'),
-fileChooser: HTMLElement = document.getElementById('file-chooser'),
-gallery: HTMLElement = document.getElementById('gallery'),
-metaTitle: HTMLElement = document.getElementById('meta-title'),
-metaAuthor: HTMLElement = document.getElementById('meta-author'),
-metaCopyright: HTMLElement = document.getElementById('meta-copyright'),
+const dropArea: HTMLElement = document.getElementById('drop-area')!,
+fileChooser: HTMLElement = document.getElementById('file-chooser')!,
+gallery: HTMLElement = document.getElementById('gallery')!,
+metaTitle: HTMLElement = document.getElementById('meta-title')!,
+metaAuthor: HTMLElement = document.getElementById('meta-author')!,
+metaCopyright: HTMLElement = document.getElementById('meta-copyright')!,
 imageWidths: NodeListOf<HTMLInputElement> = document.querySelectorAll('input[name="image-widths"]'),
 fileTypes: NodeListOf<HTMLInputElement> = document.querySelectorAll('input[name="file-types"]'),
-prepareImageButton: HTMLElement = document.getElementById('prepare-image-button'),
-wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js');
-// clientZipWorker = new Worker('/optimize-images/imports/client-zip/client-zip-worker.js');
-// navigator.serviceWorker.register('/optimize-images/client-zip-worker.js', {
-//     scope: '/optimize-images/'
-// });
+prepareImageButton: HTMLElement = document.getElementById('prepare-image-button')!,
+wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'),
+formDownload: HTMLElement = document.querySelector('form[name=download]')!;
 
 // When the dragged item is dragged over dropArea, making it the target for the drop event if the user drops it there.
 dropArea.addEventListener('dragenter', handlerFunction, false);
@@ -90,6 +87,9 @@ wasmImageWorker.onmessage = e => {
     <figcaption>${imageType}. ${imageBlob.size} bytes</figcaption>`;
 
     prepareImageButton.insertAdjacentElement('afterend', imageHTML);
+
+    formDownload.url.value = imageDataURL;
+    formDownload.zip.click();
 };
 
 function handlerFunction() {
@@ -123,13 +123,3 @@ function prepareImage() {
     .then(response => response.arrayBuffer())
     .then(buffer => wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), fileTypeList]));
 };
-
-// clientZipWorker.postMessage("Go!");
-
-// clientZipWorker.onmessage = e => {
-//     const link = document.createElement("a");
-//     link.href = URL.createObjectURL(e.data);
-//     link.download = "test.zip";
-//     link.click();
-//     link.remove();
-// }

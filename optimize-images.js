@@ -1,5 +1,5 @@
 "use strict";
-const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), metaTitle = document.getElementById('meta-title'), metaAuthor = document.getElementById('meta-author'), metaCopyright = document.getElementById('meta-copyright'), imageWidths = document.querySelectorAll('input[name="image-widths"]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js');
+const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), metaTitle = document.getElementById('meta-title'), metaAuthor = document.getElementById('meta-author'), metaCopyright = document.getElementById('meta-copyright'), imageWidths = document.querySelectorAll('input[name="image-widths"]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]');
 dropArea.addEventListener('dragenter', handlerFunction, false);
 dropArea.addEventListener('dragleave', handlerFunction, false);
 dropArea.addEventListener('dragover', handlerFunction, false);
@@ -33,6 +33,8 @@ wasmImageWorker.onmessage = e => {
     imageHTML.innerHTML = `<img width=\"150\" src=\"${imageDataURL}\">
     <figcaption>${imageType}. ${imageBlob.size} bytes</figcaption>`;
     prepareImageButton.insertAdjacentElement('afterend', imageHTML);
+    formDownload.url.value = imageDataURL;
+    formDownload.zip.click();
 };
 function handlerFunction() {
     return true;
