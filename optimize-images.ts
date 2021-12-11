@@ -1,23 +1,30 @@
-const dropArea: HTMLElement = document.getElementById('drop-area')!,
-fileChooser: HTMLElement = document.getElementById('file-chooser')!,
-gallery: HTMLElement = document.getElementById('gallery')!,
-metaTitle: HTMLElement = document.getElementById('meta-title')!,
-metaAuthor: HTMLElement = document.getElementById('meta-author')!,
-metaCopyright: HTMLElement = document.getElementById('meta-copyright')!,
-imageWidths: NodeListOf<HTMLInputElement> = document.querySelectorAll('input[name="image-widths"]'),
-fileTypes: NodeListOf<HTMLInputElement> = document.querySelectorAll('input[name="file-types"]'),
-prepareImageButton: HTMLElement = document.getElementById('prepare-image-button')!,
+const dropArea = <HTMLDivElement>document.getElementById('drop-area')!,
+fileChooser = <HTMLInputElement>document.getElementById('file-chooser')!,
+gallery = <HTMLFormElement>document.getElementById('gallery')!,
+imageName = <HTMLInputElement>document.getElementById('image-name')!,
+imagePreserveName = <HTMLInputElement>document.querySelector('input[name=preserve-name]'),
+imageWidths = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name="image-widths"]'),
+fileTypes = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name="file-types"]'),
+prepareImageButton = <HTMLButtonElement>document.getElementById('prepare-image-button')!,
 wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'),
-formDownload: HTMLElement = document.querySelector('form[name=download]')!;
+formDownload = <HTMLFormElement>document.querySelector('form[name=download]')!;
+window.imageTypesArray = new Array();
 
-// When the dragged item is dragged over dropArea, making it the target for the drop event if the user drops it there.
-dropArea.addEventListener('dragenter', handlerFunction, false);
-// When the dragged item is dragged off of dropArea and onto another element, making it the target for the drop event instead.
-dropArea.addEventListener('dragleave', handlerFunction, false);
-// Every few hundred milliseconds, while the dragged item is over dropArea and is moving.
-dropArea.addEventListener('dragover', handlerFunction, false);
-// When the user releases their mouse button, dropping the dragged item onto dropArea.
-dropArea.addEventListener('drop', handlerFunction, false);
+navigator.serviceWorker.register("/ChrisJohnNewton.GitHub.io/client-zip-service-worker.js", {
+    type: "module"
+});
+navigator.serviceWorker.oncontrollerchange = e => {
+    if (navigator.serviceWorker.controller) {
+        if (!imagePreserveName.checked) {
+            if (imageName.value.match(/\w+/g) !== null)
+                navigator.serviceWorker.controller.postMessage([imageName.value.match(/\w+/g)!.join("-"), window.imageTypesArray]);
+            else
+                navigator.serviceWorker.controller.postMessage(["image", window.imageTypesArray]);
+        } else {
+            navigator.serviceWorker.controller.postMessage([".", window.imageTypesArray]);
+        }
+    }
+}
 
 // Prevent default browser behaviour and stop propagation.
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -50,7 +57,7 @@ dropArea.addEventListener('drop', handlerFunction, false);
 dropArea.addEventListener(
     'drop',
     e => {
-        let file: File = e.dataTransfer.files[0];
+        let file: File = e.dataTransfer!.files[0];
         previewFile(file);
     },
     false
@@ -59,7 +66,7 @@ dropArea.addEventListener(
 fileChooser.addEventListener(
     'change',
     e => {
-        let file: File = (<HTMLInputElement>e.currentTarget).files[0];
+        let file: File = (<HTMLInputElement>e.currentTarget).files![0];
         previewFile(file);
     },
     false
@@ -71,32 +78,37 @@ prepareImageButton.addEventListener(
 );
 
 wasmImageWorker.onmessage = e => {
-  
+      
     const dataArray = e.data[0],
     width = e.data[1],
     height = e.data[2],
-    imageType = e.data[3];
+    lastImage = e.data[3];
+    window.imageType = e.data[4];
+    window.imageTypesArray.push(e.data[4]);
 
     const imageBlob = new Blob([dataArray]),
-    imageDataURL = URL.createObjectURL(imageBlob),
-    imageHTML = document.createElement('figure');
-    imageHTML.classList.add('m0', 'g', 'jic', 'b1', 'br6');
-    imageHTML.style.padding = "4px 4px 0 4px";
+    imageBlobTyped = imageBlob.slice(0, imageBlob.size, `image/${window.imageType}`);
+    window.imageDataURL = URL.createObjectURL(imageBlobTyped);
 
-    imageHTML.innerHTML = `<img width=\"150\" src=\"${imageDataURL}\">
-    <figcaption>${imageType}. ${imageBlob.size} bytes</figcaption>`;
+    // const imageHTML = document.createElement('figure');
+    // imageHTML.classList.add('m0', 'g', 'jic', 'b1', 'br6');
+    // imageHTML.style.padding = "4px 4px 0 4px";
 
-    prepareImageButton.insertAdjacentElement('afterend', imageHTML);
+    // imageHTML.innerHTML = `<img width=\"150\" src=\"${window.imageDataURL}\">
+    // <figcaption>${window.imageType}. ${imageBlobTyped.size} bytes</figcaption>`;
 
-    formDownload.url.value = imageDataURL;
-    formDownload.zip.click();
+    // prepareImageButton.insertAdjacentElement('afterend', imageHTML);
+
+    let formDownloadInput = document.createElement("input");
+    formDownloadInput.type = "url";
+    formDownloadInput.name = "url";
+    formDownloadInput.value = window.imageDataURL;
+    formDownload.appendChild(formDownloadInput);
+
+    if (lastImage) formDownload.zip.click();
 };
 
-function handlerFunction() {
-    return true;
-};
-
-function previewFile(file) {
+function previewFile(file: File) {
     let reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = () => {
@@ -106,7 +118,7 @@ function previewFile(file) {
         img.id = "web-image"
         img.className = "br6 l2";
         img.dataset.fileName = file.name;
-        if (gallery.children.length > 0) gallery.removeChild(gallery.firstChild);
+        if (gallery.children.length > 0) gallery.removeChild(gallery.firstChild!);
         gallery.prepend(img);
     };
 };

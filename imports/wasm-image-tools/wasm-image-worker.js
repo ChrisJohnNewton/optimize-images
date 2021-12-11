@@ -12,9 +12,10 @@ self.onmessage = e => {
 
     const decoder = resultsArray[0],
     decoded = decoder.decode(buffer, buffer.length, 4),
-    { width, height } = decoder.dimensions();
+    { width, height } = decoder.dimensions(),
+    encoderArray = resultsArray.slice(1);
 
-    resultsArray.slice(1).forEach(encoder =>
+    encoderArray.forEach((encoder, key, encoderArray) =>
       {
 
         if (encoder.hasOwnProperty("AVIF_PIXEL_FORMAT")) {
@@ -39,7 +40,8 @@ self.onmessage = e => {
               )
             );
 
-          self.postMessage([encoded, width, height, "AVIF"]);
+          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "avif"])
+          else self.postMessage([encoded, width, height, false, "avif"]);
 
         } else if (encoder.hasOwnProperty("WebPImageHint")) {
           
@@ -82,7 +84,8 @@ self.onmessage = e => {
               )
             );
 
-          self.postMessage([encoded, width, height, "WebP"]);
+          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "webp"])
+          else self.postMessage([encoded, width, height, false, "webp"]);
 
         } else if (encoder.hasOwnProperty("J_COLOR_SPACE")) {
           
@@ -115,7 +118,8 @@ self.onmessage = e => {
               )
             );
 
-          self.postMessage([encoded, width, height, "JPEG"]);
+          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "jpeg"])
+          else self.postMessage([encoded, width, height, false, "jpeg"]);
 
         }
 

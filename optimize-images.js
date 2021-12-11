@@ -1,9 +1,22 @@
 "use strict";
-const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), metaTitle = document.getElementById('meta-title'), metaAuthor = document.getElementById('meta-author'), metaCopyright = document.getElementById('meta-copyright'), imageWidths = document.querySelectorAll('input[name="image-widths"]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]');
-dropArea.addEventListener('dragenter', handlerFunction, false);
-dropArea.addEventListener('dragleave', handlerFunction, false);
-dropArea.addEventListener('dragover', handlerFunction, false);
-dropArea.addEventListener('drop', handlerFunction, false);
+const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), imageName = document.getElementById('image-name'), imagePreserveName = document.querySelector('input[name=preserve-name]'), imageWidths = document.querySelectorAll('input[name="image-widths"]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]');
+window.imageTypesArray = new Array();
+navigator.serviceWorker.register("/ChrisJohnNewton.GitHub.io/client-zip-service-worker.js", {
+    type: "module"
+});
+navigator.serviceWorker.oncontrollerchange = e => {
+    if (navigator.serviceWorker.controller) {
+        if (!imagePreserveName.checked) {
+            if (imageName.value.match(/\w+/g) !== null)
+                navigator.serviceWorker.controller.postMessage([imageName.value.match(/\w+/g).join("-"), window.imageTypesArray]);
+            else
+                navigator.serviceWorker.controller.postMessage(["image", window.imageTypesArray]);
+        }
+        else {
+            navigator.serviceWorker.controller.postMessage([".", window.imageTypesArray]);
+        }
+    }
+};
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
     dropArea.addEventListener(eventName, e => {
         e.preventDefault();
@@ -26,20 +39,19 @@ fileChooser.addEventListener('change', e => {
 }, false);
 prepareImageButton.addEventListener('click', () => prepareImage());
 wasmImageWorker.onmessage = e => {
-    const dataArray = e.data[0], width = e.data[1], height = e.data[2], imageType = e.data[3];
-    const imageBlob = new Blob([dataArray]), imageDataURL = URL.createObjectURL(imageBlob), imageHTML = document.createElement('figure');
-    imageHTML.classList.add('m0', 'g', 'jic', 'b1', 'br6');
-    imageHTML.style.padding = "4px 4px 0 4px";
-    imageHTML.innerHTML = `<img width=\"150\" src=\"${imageDataURL}\">
-    <figcaption>${imageType}. ${imageBlob.size} bytes</figcaption>`;
-    prepareImageButton.insertAdjacentElement('afterend', imageHTML);
-    formDownload.url.value = imageDataURL;
-    formDownload.zip.click();
+    const dataArray = e.data[0], width = e.data[1], height = e.data[2], lastImage = e.data[3];
+    window.imageType = e.data[4];
+    window.imageTypesArray.push(e.data[4]);
+    const imageBlob = new Blob([dataArray]), imageBlobTyped = imageBlob.slice(0, imageBlob.size, `image/${window.imageType}`);
+    window.imageDataURL = URL.createObjectURL(imageBlobTyped);
+    let formDownloadInput = document.createElement("input");
+    formDownloadInput.type = "url";
+    formDownloadInput.name = "url";
+    formDownloadInput.value = window.imageDataURL;
+    formDownload.appendChild(formDownloadInput);
+    if (lastImage)
+        formDownload.zip.click();
 };
-function handlerFunction() {
-    return true;
-}
-;
 function previewFile(file) {
     let reader = new FileReader();
     reader.readAsDataURL(file);
