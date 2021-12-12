@@ -20,28 +20,7 @@ self.onmessage = e => {
 
         if (encoder.hasOwnProperty("AVIF_PIXEL_FORMAT")) {
           
-          try {
-            const encoded =
-            new Uint8ClampedArray(
-              encoder.encode(
-                decoded,
-                width, // Width
-                height, // Height
-                4, // Channels
-                {
-                  minQuantizer: 29,
-                  maxQuantizer: 31,
-                  minQuantizerAlpha: 29,
-                  maxQuantizerAlpha: 31,
-                  tileRowsLog2: 0,
-                  tileColsLog2: 0,
-                  speed: 10,
-                },
-                3 // Chroma
-              )
-            );
-          } catch(e) {
-            const encoded =
+          const encoded =
             new Uint8ClampedArray(
               encoder.encode(
                 decoded,
@@ -60,7 +39,6 @@ self.onmessage = e => {
                 3 // Chroma
               )
             );
-          }
 
           if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "avif"])
           else self.postMessage([encoded, width, height, false, "avif"]);
