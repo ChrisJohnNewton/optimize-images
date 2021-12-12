@@ -11,7 +11,7 @@ self.onmessage = e => {
   .then(resultsArray => {
 
     const decoder = resultsArray[0],
-    decoded = decoder.decode(buffer, buffer.length, 4),
+    decoded = decoder.decode(buffer, buffer.length, 3),
     { width, height } = decoder.dimensions(),
     encoderArray = resultsArray.slice(1);
 
