@@ -106,6 +106,7 @@ wasmImageWorker.onmessage = e => {
     formDownload.appendChild(formDownloadInput);
 
     if (lastImage) formDownload.zip.click();
+    while (formDownload.url) formDownload.lastElementChild!.remove();
 };
 
 function previewFile(file: File) {
