@@ -10,7 +10,7 @@ wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-ima
 formDownload = <HTMLFormElement>document.querySelector('form[name=download]')!;
 window.imageTypesArray = new Array();
 
-navigator.serviceWorker.register("/ChrisJohnNewton.GitHub.io/client-zip-service-worker.js", {
+navigator.serviceWorker.register("/client-zip-service-worker.js", {
     type: "module"
 });
 navigator.serviceWorker.oncontrollerchange = e => {
@@ -24,7 +24,7 @@ navigator.serviceWorker.oncontrollerchange = e => {
             navigator.serviceWorker.controller.postMessage([".", window.imageTypesArray]);
         }
     }
-}
+};
 
 // Prevent default browser behaviour and stop propagation.
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {

@@ -1,7 +1,7 @@
 "use strict";
 const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), imageName = document.getElementById('image-name'), imagePreserveName = document.querySelector('input[name=preserve-name]'), imageWidths = document.querySelectorAll('input[name="image-widths"]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]');
 window.imageTypesArray = new Array();
-navigator.serviceWorker.register("/ChrisJohnNewton.GitHub.io/client-zip-service-worker.js", {
+navigator.serviceWorker.register("/client-zip-service-worker.js", {
     type: "module"
 });
 navigator.serviceWorker.oncontrollerchange = e => {
