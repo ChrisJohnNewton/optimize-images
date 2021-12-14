@@ -2,7 +2,8 @@ const dropArea = <HTMLDivElement>document.getElementById('drop-area')!,
 fileChooser = <HTMLInputElement>document.getElementById('file-chooser')!,
 gallery = <HTMLFormElement>document.getElementById('gallery')!,
 imageName = <HTMLInputElement>document.getElementById('image-name')!,
-imagePreserveName = <HTMLInputElement>document.querySelector('input[name=preserve-name]'),
+preserveNamesFieldset = <HTMLFieldSetElement>document.getElementById('preserve-name-fieldset'),
+imagePreserveNames = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name=preserve-name]'),
 imageWidths = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name="image-widths"]'),
 fileTypes = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name="file-types"]'),
 prepareImageButton = <HTMLButtonElement>document.getElementById('prepare-image-button')!,
@@ -10,19 +11,20 @@ wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-ima
 formDownload = <HTMLFormElement>document.querySelector('form[name=download]')!;
 window.imageTypesArray = new Array();
 
-navigator.serviceWorker.register("/client-zip-service-worker.js", {
+navigator.serviceWorker.register("/ChrisJohnNewton.GitHub.io/client-zip-service-worker.js", {
     type: "module"
 });
 navigator.serviceWorker.oncontrollerchange = e => {
     if (navigator.serviceWorker.controller) {
-        if (!imagePreserveName.checked) {
+        if (!imagePreserveNames[0].checked) {
             if (imageName.value.match(/\w+/g) !== null)
                 navigator.serviceWorker.controller.postMessage([imageName.value.match(/\w+/g)!.join("-"), window.imageTypesArray]);
             else
                 navigator.serviceWorker.controller.postMessage(["image", window.imageTypesArray]);
         } else {
-            navigator.serviceWorker.controller.postMessage([".", window.imageTypesArray]);
+            navigator.serviceWorker.controller.postMessage([window.originalImageName, window.imageTypesArray]);
         }
+        window.imageTypesArray = new Array();
     }
 };
 
@@ -77,6 +79,25 @@ prepareImageButton.addEventListener(
     () => prepareImage()
 );
 
+imagePreserveNames.forEach(input => {
+    input.addEventListener(
+        'click',
+        () => {
+            if (imagePreserveNames[0].checked) {
+                preserveNamesFieldset.style.height = "37px";
+                preserveNamesFieldset.style.removeProperty("justify-content");
+                imageName.style.opacity = "0";
+                imageName.style.visibility = "hidden";
+            } else {
+                preserveNamesFieldset.style.height = "100px";
+                preserveNamesFieldset.style.justifyContent = "space-around";
+                imageName.style.opacity = "1";
+                imageName.style.visibility = "visible";
+            }
+        }
+    )
+});
+
 wasmImageWorker.onmessage = e => {
       
     const dataArray = e.data[0],
@@ -89,15 +110,6 @@ wasmImageWorker.onmessage = e => {
     const imageBlob = new Blob([dataArray]),
     imageBlobTyped = imageBlob.slice(0, imageBlob.size, `image/${window.imageType}`);
     window.imageDataURL = URL.createObjectURL(imageBlobTyped);
-
-    // const imageHTML = document.createElement('figure');
-    // imageHTML.classList.add('m0', 'g', 'jic', 'b1', 'br6');
-    // imageHTML.style.padding = "4px 4px 0 4px";
-
-    // imageHTML.innerHTML = `<img width=\"150\" src=\"${window.imageDataURL}\">
-    // <figcaption>${window.imageType}. ${imageBlobTyped.size} bytes</figcaption>`;
-
-    // prepareImageButton.insertAdjacentElement('afterend', imageHTML);
 
     let formDownloadInput = document.createElement("input");
     formDownloadInput.type = "url";
@@ -115,6 +127,10 @@ function previewFile(file: File) {
     let reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onloadend = () => {
+        
+        window.originalImageType = file.type;
+        window.originalImageName = (file.name).substring(0, (file.name).lastIndexOf('.'));
+
         if (gallery.style.display === "none") gallery.style.removeProperty("display");
         let img = document.createElement('img')
         img.src = <string>reader.result;
@@ -136,5 +152,5 @@ function prepareImage() {
 
     fetch(webImage.src)
     .then(response => response.arrayBuffer())
-    .then(buffer => wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), fileTypeList]));
+    .then(buffer => wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), window.originalImageType, fileTypeList]));
 };

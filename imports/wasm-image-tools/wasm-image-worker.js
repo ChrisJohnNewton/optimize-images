@@ -2,16 +2,25 @@ self.importScripts('./wasm_image_loader.min.js', './wasm_avif.min.js', './wasm_w
 
 self.onmessage = e => {
   const buffer = e.data[0],
+  originalImageType = e.data[1],
   fileTypeList = new Array();
-  for (fileType of e.data[1]) {
+  for (fileType of e.data[2]) {
     fileTypeList.push(eval(fileType))
+  }
+
+  if (originalImageType === "image/jpeg" || originalImageType === "image/jpg") {
+    self.channels = 4;
+    self.colorSpace = 12;
+  } else {
+    self.channels = 3;
+    self.colorSpace = 6;
   }
   
   Promise.all([wasm_image_loader(), ...fileTypeList])
   .then(resultsArray => {
 
     const decoder = resultsArray[0],
-    decoded = decoder.decode(buffer, buffer.length, 3),
+    decoded = decoder.decode(buffer, buffer.length, self.channels),
     { width, height } = decoder.dimensions(),
     encoderArray = resultsArray.slice(1);
 
@@ -19,14 +28,14 @@ self.onmessage = e => {
       {
 
         if (encoder.hasOwnProperty("AVIF_PIXEL_FORMAT")) {
-          
+
           const encoded =
             new Uint8ClampedArray(
               encoder.encode(
                 decoded,
                 width, // Width
                 height, // Height
-                3, // Channels
+                self.channels,
                 {
                   minQuantizer: 29,
                   maxQuantizer: 31,
@@ -51,7 +60,7 @@ self.onmessage = e => {
                 decoded,
                 width, // Width
                 height, // Height
-                4, // Channels
+                self.channels,
                 {
                   quality: 75,
                   target_size: 0,
@@ -95,7 +104,7 @@ self.onmessage = e => {
                 decoded,
                 width, // Width
                 height, // Height
-                4, // Channels
+                self.channels,
                 {
                   quality: 75,
                   baseline: false,
@@ -103,7 +112,7 @@ self.onmessage = e => {
                   progressive: true,
                   optimize_coding: true,
                   smoothing: 0,
-                  in_color_space: 12, // J_COLOR_SPACE.JCS_RGB
+                  in_color_space: self.colorSpace, // J_COLOR_SPACE.JCS_RGB
                   out_color_space: 3, // J_COLOR_SPACE.JCS_YCbCr
                   quant_table: 3,
                   trellis_multipass: false,
@@ -118,8 +127,8 @@ self.onmessage = e => {
               )
             );
 
-          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "jpeg"])
-          else self.postMessage([encoded, width, height, false, "jpeg"]);
+          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "jpg"])
+          else self.postMessage([encoded, width, height, false, "jpg"]);
 
         }
 
