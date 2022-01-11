@@ -3,5 +3,8 @@ interface Window {
     imageTypesArray: string[],
     originalImageType: string,
     originalImageName: string,
+    originalImageWidth: number,
+    originalImageHeight: number,
+    encodedImageWidth: number,
     imageDataURL: string
 }

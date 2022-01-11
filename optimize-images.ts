@@ -2,13 +2,25 @@ const dropArea = <HTMLDivElement>document.getElementById('drop-area')!,
 fileChooser = <HTMLInputElement>document.getElementById('file-chooser')!,
 gallery = <HTMLFormElement>document.getElementById('gallery')!,
 imageName = <HTMLInputElement>document.getElementById('image-name')!,
+imageWidth = <HTMLInputElement>document.getElementById('image-width')!,
 preserveNamesFieldset = <HTMLFieldSetElement>document.getElementById('preserve-name-fieldset'),
+preserveWidthsFieldset = <HTMLFieldSetElement>document.getElementById('preserve-width-fieldset'),
 imagePreserveNames = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name=preserve-name]'),
-imageWidths = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name="image-widths"]'),
+imagePreserveWidths = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name=preserve-width]'),
 fileTypes = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name="file-types"]'),
 prepareImageButton = <HTMLButtonElement>document.getElementById('prepare-image-button')!,
 wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'),
-formDownload = <HTMLFormElement>document.querySelector('form[name=download]')!;
+formDownload = <HTMLFormElement>document.querySelector('form[name=download]')!,
+imageWidthObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {  
+        if (typeof mutation.addedNodes[0] === "object" ) {
+            let previewImage = <HTMLImageElement>mutation.addedNodes[0];
+            window.originalImageWidth = previewImage.naturalWidth;
+            window.originalImageHeight = previewImage.naturalHeight;
+        }
+    })
+  });
+imageWidthObserver.observe(gallery, {childList: true});
 window.imageTypesArray = new Array();
 
 navigator.serviceWorker.register("/ChrisJohnNewton.GitHub.io/client-zip-service-worker.js", {
@@ -98,6 +110,45 @@ imagePreserveNames.forEach(input => {
     )
 });
 
+imagePreserveWidths.forEach(input => {
+    input.addEventListener(
+        'click',
+        () => {
+            if (imagePreserveWidths[0].checked) {
+                preserveWidthsFieldset.style.height = "37px";
+                preserveWidthsFieldset.style.removeProperty("justify-content");
+                imageWidth.style.opacity = "0";
+                imageWidth.style.visibility = "hidden";
+            } else {
+                preserveWidthsFieldset.style.height = "100px";
+                preserveWidthsFieldset.style.justifyContent = "space-around";
+                imageWidth.style.opacity = "1";
+                imageWidth.style.visibility = "visible";
+                imageWidth.placeholder = `Your image is currently ${window.originalImageWidth}px wide.`
+                imageWidth.max = window.originalImageWidth.toString();
+            }
+        }
+    )
+});
+
+
+imageWidth.addEventListener(
+    "input",
+    e => {
+        if (parseInt((<HTMLInputElement>e.target).value) > parseInt((<HTMLInputElement>e.target).max)) {
+            (<HTMLInputElement>e.target).value = (<HTMLInputElement>e.target).max;
+
+        (<HTMLDivElement>imageWidth.parentNode).classList.add('tooltipOpaque');
+        
+        // Wait 1.5 seconds.
+        setTimeout(()=>{
+            // Remove the class that changes the opacity of the tooltip's pseudoelements.
+            (<HTMLDivElement>imageWidth.parentNode).classList.remove('tooltipOpaque');
+        }, 2500);
+        }
+    }
+)
+
 wasmImageWorker.onmessage = e => {
       
     const dataArray = e.data[0],
@@ -108,33 +159,30 @@ wasmImageWorker.onmessage = e => {
     window.imageTypesArray.push(e.data[4]);
 
     const imageBlob = new Blob([dataArray]),
-    imageBlobTyped = imageBlob.slice(0, imageBlob.size, `image/${window.imageType}`);
-    window.imageDataURL = URL.createObjectURL(imageBlobTyped);
+    imageBlobTyped = imageBlob.slice(0, imageBlob.size, `image/${window.imageType}`),
+    imageBlobURL = URL.createObjectURL(imageBlobTyped);
 
     let formDownloadInput = document.createElement("input");
     formDownloadInput.type = "url";
     formDownloadInput.name = "url";
-    formDownloadInput.value = window.imageDataURL;
+    formDownloadInput.value = imageBlobURL;
     formDownload.appendChild(formDownloadInput);
 
-    if (lastImage) {
-        formDownload.zip.click();
-        while (formDownload.url) formDownload.lastElementChild!.remove();
-    }
+    if (lastImage) formDownload.zip.click();
 };
 
 function previewFile(file: File) {
     let reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
         
         window.originalImageType = file.type;
         window.originalImageName = (file.name).substring(0, (file.name).lastIndexOf('.'));
 
         if (gallery.style.display === "none") gallery.style.removeProperty("display");
-        let img = document.createElement('img')
+        let img = document.createElement('img');
         img.src = <string>reader.result;
-        img.id = "web-image"
+        img.id = "web-image";
         img.className = "br6 l2";
         img.dataset.fileName = file.name;
         if (gallery.children.length > 0) gallery.removeChild(gallery.firstChild!);
@@ -143,14 +191,21 @@ function previewFile(file: File) {
 };
 
 function prepareImage() {
-    const webImage = <HTMLImageElement>document.getElementById('web-image');
+    const webImage = <HTMLImageElement>document.getElementById('web-image'),
+    downloadBlobs = <NodeListOf<HTMLInputElement>>document.getElementsByName("url");
 
     let fileTypeList: String[] = new Array();
+
     for (let fileType of <any>fileTypes) {
         if (fileType.checked) fileTypeList.push(`wasm_${fileType.id}()`);
-    }
+    };
+
+    if (imagePreserveWidths[1].checked && imageWidth.value !== "") window.encodedImageWidth = parseInt(imageWidth.value);
+    else window.encodedImageWidth =  window.originalImageWidth;
+
+    while (formDownload.url) formDownload.lastElementChild!.remove();
 
     fetch(webImage.src)
     .then(response => response.arrayBuffer())
-    .then(buffer => wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), window.originalImageType, fileTypeList]));
+    .then(buffer => wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), window.originalImageType, window.originalImageWidth, window.originalImageHeight, window.encodedImageWidth, fileTypeList]));
 };

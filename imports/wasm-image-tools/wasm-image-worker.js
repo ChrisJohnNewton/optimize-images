@@ -3,8 +3,13 @@ self.importScripts('./wasm_image_loader.min.js', './wasm_avif.min.js', './wasm_w
 self.onmessage = e => {
   const buffer = e.data[0],
   originalImageType = e.data[1],
+  originalImageWidth = e.data[2],
+  originalImageHeight = e.data[3],
+  encodedImageWidth = e.data[4],
+  encodedImageHeight = originalImageHeight * (encodedImageWidth / originalImageWidth),
   fileTypeList = new Array();
-  for (fileType of e.data[2]) {
+
+  for (fileType of e.data[5]) {
     fileTypeList.push(eval(fileType))
   }
 
@@ -20,9 +25,11 @@ self.onmessage = e => {
   .then(resultsArray => {
 
     const decoder = resultsArray[0],
-    decoded = decoder.decode(buffer, buffer.length, self.channels),
-    { width, height } = decoder.dimensions(),
     encoderArray = resultsArray.slice(1);
+    
+    let decoded = decoder.decode(buffer, buffer.length, self.channels);
+
+    if (encodedImageWidth < originalImageWidth) decoded = decoder.resize(decoded, originalImageWidth, originalImageHeight, self.channels, encodedImageWidth, encodedImageHeight);
 
     encoderArray.forEach((encoder, key, encoderArray) =>
       {
@@ -33,8 +40,8 @@ self.onmessage = e => {
             new Uint8ClampedArray(
               encoder.encode(
                 decoded,
-                width, // Width
-                height, // Height
+                encodedImageWidth,
+                encodedImageHeight,
                 self.channels,
                 {
                   minQuantizer: 29,
@@ -49,8 +56,8 @@ self.onmessage = e => {
               )
             );
 
-          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "avif"])
-          else self.postMessage([encoded, width, height, false, "avif"]);
+          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, encodedImageWidth, encodedImageHeight, true, "avif"])
+          else self.postMessage([encoded, encodedImageWidth, encodedImageHeight, false, "avif"]);
 
         } else if (encoder.hasOwnProperty("WebPImageHint")) {
           
@@ -58,8 +65,8 @@ self.onmessage = e => {
             new Uint8ClampedArray(
               encoder.encode(
                 decoded,
-                width, // Width
-                height, // Height
+                encodedImageWidth,
+                encodedImageHeight,
                 self.channels,
                 {
                   quality: 75,
@@ -93,8 +100,8 @@ self.onmessage = e => {
               )
             );
 
-          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "webp"])
-          else self.postMessage([encoded, width, height, false, "webp"]);
+          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, encodedImageWidth, encodedImageHeight, true, "webp"])
+          else self.postMessage([encoded, encodedImageWidth, encodedImageHeight, false, "webp"]);
 
         } else if (encoder.hasOwnProperty("J_COLOR_SPACE")) {
           
@@ -102,8 +109,8 @@ self.onmessage = e => {
             new Uint8ClampedArray(
               encoder.encode(
                 decoded,
-                width, // Width
-                height, // Height
+                encodedImageWidth,
+                encodedImageHeight,
                 self.channels,
                 {
                   quality: 75,
@@ -127,8 +134,8 @@ self.onmessage = e => {
               )
             );
 
-          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, width, height, true, "jpg"])
-          else self.postMessage([encoded, width, height, false, "jpg"]);
+          if (Object.is(encoderArray.length - 1, key)) self.postMessage([encoded, encodedImageWidth, encodedImageHeight, true, "jpg"])
+          else self.postMessage([encoded, encodedImageWidth, encodedImageHeight, false, "jpg"]);
 
         }
 
