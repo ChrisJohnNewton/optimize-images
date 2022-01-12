@@ -19,7 +19,7 @@ const dropArea = document.getElementById('drop-area'), fileChooser = document.ge
 });
 imageWidthObserver.observe(gallery, { childList: true });
 window.imageTypesArray = new Array();
-navigator.serviceWorker.register("/ChrisJohnNewton.GitHub.io/client-zip-service-worker.js", {
+navigator.serviceWorker.register("client-zip-service-worker.js", {
     type: "module"
 });
 navigator.serviceWorker.oncontrollerchange = e => {
