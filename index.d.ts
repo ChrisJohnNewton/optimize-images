@@ -1,4 +1,5 @@
 interface Window { 
+    imageTotal: number,
     imageType: string,
     imageTypesArray: string[],
     originalImageType: string,

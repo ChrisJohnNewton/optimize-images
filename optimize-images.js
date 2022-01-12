@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), imageName = document.getElementById('image-name'), imageWidth = document.getElementById('image-width'), preserveNamesFieldset = document.getElementById('preserve-name-fieldset'), preserveWidthsFieldset = document.getElementById('preserve-width-fieldset'), imagePreserveNames = document.querySelectorAll('input[name=preserve-name]'), imagePreserveWidths = document.querySelectorAll('input[name=preserve-width]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]'), imageWidthObserver = new MutationObserver((mutations) => {
+const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), progressBarContainer = document.getElementById('progress-bar-container'), progressBarLabel = document.querySelector('label[for=progress-bar]'), progressBar = document.getElementById('progress-bar'), imageName = document.getElementById('image-name'), imageWidth = document.getElementById('image-width'), preserveNamesFieldset = document.getElementById('preserve-name-fieldset'), preserveWidthsFieldset = document.getElementById('preserve-width-fieldset'), imagePreserveNames = document.querySelectorAll('input[name=preserve-name]'), imagePreserveWidths = document.querySelectorAll('input[name=preserve-width]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]'), imageWidthObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         if (typeof mutation.addedNodes[0] === "object") {
             let previewImage = mutation.addedNodes[0];
@@ -101,6 +101,9 @@ imageWidth.addEventListener("input", e => {
     }
 });
 wasmImageWorker.onmessage = e => {
+    progressBar.value += Math.round(100 / window.imageTotal);
+    progressBar.textContent = `${progressBar.value}%`;
+    progressBarLabel.textContent = `${progressBar.value}% complete`;
     const dataArray = e.data[0], width = e.data[1], height = e.data[2], lastImage = e.data[3];
     window.imageType = e.data[4];
     window.imageTypesArray.push(e.data[4]);
@@ -133,13 +136,15 @@ function previewFile(file) {
 }
 ;
 function prepareImage() {
-    const webImage = document.getElementById('web-image'), downloadBlobs = document.getElementsByName("url");
+    progressBarContainer.style.removeProperty("display");
+    const webImage = document.getElementById('web-image');
     let fileTypeList = new Array();
     for (let fileType of fileTypes) {
         if (fileType.checked)
             fileTypeList.push(`wasm_${fileType.id}()`);
     }
     ;
+    window.imageTotal = fileTypeList.length;
     if (imagePreserveWidths[1].checked && imageWidth.value !== "")
         window.encodedImageWidth = parseInt(imageWidth.value);
     else
@@ -148,6 +153,11 @@ function prepareImage() {
         formDownload.lastElementChild.remove();
     fetch(webImage.src)
         .then(response => response.arrayBuffer())
-        .then(buffer => wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), window.originalImageType, window.originalImageWidth, window.originalImageHeight, window.encodedImageWidth, fileTypeList]));
+        .then(buffer => {
+        wasmImageWorker.postMessage([new Uint8ClampedArray(buffer), window.originalImageType, window.originalImageWidth, window.originalImageHeight, window.encodedImageWidth, fileTypeList]);
+        progressBar.value = 5;
+        progressBar.textContent = "5%";
+        progressBarLabel.textContent = "5% complete";
+    });
 }
 ;
