@@ -8,20 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), progressBarContainer = document.getElementById('progress-bar-container'), progressBarLabel = document.querySelector('label[for=progress-bar]'), progressBar = document.getElementById('progress-bar'), imageName = document.getElementById('image-name'), imageWidth = document.getElementById('image-width'), preserveNamesFieldset = document.getElementById('preserve-name-fieldset'), preserveWidthsFieldset = document.getElementById('preserve-width-fieldset'), imagePreserveNames = document.querySelectorAll('input[name=preserve-name]'), imagePreserveWidths = document.querySelectorAll('input[name=preserve-width]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]'), imageWidthObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (typeof mutation.addedNodes[0] === "object") {
-            let previewImage = mutation.addedNodes[0];
-            window.originalImageWidth = previewImage.naturalWidth;
-            window.originalImageHeight = previewImage.naturalHeight;
-        }
-    });
-});
-imageWidthObserver.observe(gallery, { childList: true });
+const dropArea = document.getElementById('drop-area'), fileChooser = document.getElementById('file-chooser'), gallery = document.getElementById('gallery'), progressBarContainer = document.getElementById('progress-bar-container'), progressBarLabel = document.querySelector('label[for=progress-bar]'), progressBar = document.getElementById('progress-bar'), imageName = document.getElementById('image-name'), imageWidth = document.getElementById('image-width'), preserveNamesFieldset = document.getElementById('preserve-name-fieldset'), preserveWidthsFieldset = document.getElementById('preserve-width-fieldset'), imagePreserveNames = document.querySelectorAll('input[name=preserve-name]'), imagePreserveWidths = document.querySelectorAll('input[name=preserve-width]'), fileTypes = document.querySelectorAll('input[name="file-types"]'), prepareImageButton = document.getElementById('prepare-image-button'), wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'), formDownload = document.querySelector('form[name=download]');
 window.imageTypesArray = new Array();
-navigator.serviceWorker.register("client-zip-service-worker.js", {
-    type: "module"
-});
+navigator.serviceWorker.register("client-zip-service-worker.js", { type: "module" });
 navigator.serviceWorker.oncontrollerchange = e => {
     if (navigator.serviceWorker.controller) {
         if (!imagePreserveNames[0].checked) {
@@ -129,6 +118,10 @@ function previewFile(file) {
         img.id = "web-image";
         img.className = "br6 l2";
         img.dataset.fileName = file.name;
+        img.onload = () => __awaiter(this, void 0, void 0, function* () {
+            window.originalImageWidth = img.naturalWidth;
+            window.originalImageHeight = img.naturalHeight;
+        });
         if (gallery.children.length > 0)
             gallery.removeChild(gallery.firstChild);
         gallery.prepend(img);

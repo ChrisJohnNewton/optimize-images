@@ -13,22 +13,10 @@ imagePreserveWidths = <NodeListOf<HTMLInputElement>>document.querySelectorAll('i
 fileTypes = <NodeListOf<HTMLInputElement>>document.querySelectorAll('input[name="file-types"]'),
 prepareImageButton = <HTMLButtonElement>document.getElementById('prepare-image-button'),
 wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-image-worker.js'),
-formDownload = <HTMLFormElement>document.querySelector('form[name=download]'),
-imageWidthObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {  
-        if (typeof mutation.addedNodes[0] === "object" ) {
-            let previewImage = <HTMLImageElement>mutation.addedNodes[0];
-            window.originalImageWidth = previewImage.naturalWidth;
-            window.originalImageHeight = previewImage.naturalHeight;
-        }
-    })
-});
-imageWidthObserver.observe(gallery, {childList: true});
+formDownload = <HTMLFormElement>document.querySelector('form[name=download]');
 window.imageTypesArray = new Array();
 
-navigator.serviceWorker.register("client-zip-service-worker.js", {
-    type: "module"
-});
+navigator.serviceWorker.register("client-zip-service-worker.js", { type: "module" });
 navigator.serviceWorker.oncontrollerchange = e => {
     if (navigator.serviceWorker.controller) {
         if (!imagePreserveNames[0].checked) {
@@ -187,12 +175,19 @@ function previewFile(file: File) {
         window.originalImageName = (file.name).substring(0, (file.name).lastIndexOf('.'));
 
         if (gallery.style.display === "none") gallery.style.removeProperty("display");
+
         let img = document.createElement('img');
         img.src = <string>reader.result;
         img.id = "web-image";
         img.className = "br6 l2";
         img.dataset.fileName = file.name;
+        img.onload = async () => {
+            window.originalImageWidth = img.naturalWidth;
+            window.originalImageHeight = img.naturalHeight;
+        }
+
         if (gallery.children.length > 0) gallery.removeChild(gallery.firstChild!);
+        
         gallery.prepend(img);
 
     };
