@@ -16,7 +16,7 @@ wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-ima
 formDownload = <HTMLFormElement>document.querySelector('form[name=download]');
 window.imageTypesArray = new Array();
 
-navigator.serviceWorker.register("/client-zip-service-worker.js", { type: "module" });
+navigator.serviceWorker.register("client-zip-service-worker.js", { type: "module" });
 navigator.serviceWorker.oncontrollerchange = e => {
     if (navigator.serviceWorker.controller) {
         if (!imagePreserveNames[0].checked) {
