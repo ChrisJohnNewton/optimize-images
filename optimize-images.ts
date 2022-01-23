@@ -16,7 +16,31 @@ wasmImageWorker = new Worker('/optimize-images/imports/wasm-image-tools/wasm-ima
 formDownload = <HTMLFormElement>document.querySelector('form[name=download]');
 window.imageTypesArray = new Array();
 
-navigator.serviceWorker.register("client-zip-service-worker.js", { type: "module" });
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register("client-zip-service-worker.js", { type: "module" })
+    .then(registration=> {
+        var serviceWorker;
+        if (registration.installing) {
+            serviceWorker = registration.installing;
+            document.getElementById('service-worker')!.textContent = 'installing';
+        } else if (registration.waiting) {
+            serviceWorker = registration.waiting;
+            document.getElementById('service-worker')!.textContent = 'waiting';
+        } else if (registration.active) {
+            serviceWorker = registration.active;
+            document.getElementById('service-worker')!.textContent = 'active';
+        }
+        if (serviceWorker) {
+            serviceWorker.addEventListener('statechange', (state) => {
+                document.getElementById('service-worker')!.textContent = navigator.serviceWorker.controller!.state;
+            });
+        }
+    }).catch (function (error) {
+        document.getElementById('service-worker')!.textContent = `Something went wrong during registration. The service-worker.js file might be unavailable or contain a syntax error.`;
+    });
+} else {
+    document.getElementById('service-worker')!.textContent = `The current browser doesn't support service workers. Perhaps it is too old or we are not in a Secure Context.`;
+}
 
 navigator.serviceWorker.oncontrollerchange = e => {
     if (navigator.serviceWorker.controller) {
