@@ -6,7 +6,7 @@ self.onmessage = e => {
   originalImageWidth = e.data[2],
   originalImageHeight = e.data[3],
   encodedImageWidth = e.data[4],
-  encodedImageHeight = originalImageHeight * (encodedImageWidth / originalImageWidth),
+  encodedImageHeight = (originalImageHeight * (encodedImageWidth / originalImageWidth).toFixed(5)),
   fileTypeList = new Array();
 
   for (fileType of e.data[5]) {
@@ -29,7 +29,12 @@ self.onmessage = e => {
     
     let decoded = decoder.decode(buffer, buffer.length, self.channels);
 
-    if (encodedImageWidth < originalImageWidth) decoded = decoder.resize(decoded, originalImageWidth, originalImageHeight, self.channels, encodedImageWidth, encodedImageHeight);
+    if (encodedImageWidth < originalImageWidth) {
+      decoder.free();
+      decoded = decoder.resize(decoded, originalImageWidth, originalImageHeight, self.channels, encodedImageWidth, encodedImageHeight);
+    }
+
+    console.log(`originalImageWidth: ${originalImageWidth}\noriginalImageHeight: ${originalImageHeight}\nencodedImageWidth: ${encodedImageWidth}\nencodedImageHeight: ${encodedImageHeight}`);
 
     encoderArray.forEach((encoder, key, encoderArray) =>
       {
