@@ -1,3 +1,5 @@
+console.log("wasm-image-worker-service-worker is version 1");
+
 self.importScripts('./wasm_image_loader.min.js', './wasm_avif.min.js', './wasm_webp.min.js', './wasm_mozjpeg.min.js');
 
 self.onmessage = e => {
